@@ -1,0 +1,34 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+        tier: {{ .Values.tier }}
+        team: {{ .Values.team }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ .Values.docker_image }}
+        env:
+          - name: APP
+            value: {{ .Chart.Name }}
+          - name: SUMO_ACCESS_ID
+            value: {{ .Values.sumoAccessId }}
+          - name: SUMO_ACCESS_KEY
+            value: {{ .Values.sumoAccessKey }}
+          - name: SUMO_RECEIVER_URL
+            value: {{ .Values.sumoReceiverURL }}
+          - name: COMMIT_AUTHOR
+            value: {{ .Values.author }}
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 128Mi
