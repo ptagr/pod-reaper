@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func main(){
-	fmt.Print("Hello from pod reaper! Hide all the pods!")
+	for true {
+		fmt.Printf("\n%s Hello from pod reaper! Hide all the pods!", time.Now().Format(time.UnixDate))
+		time.Sleep(30 * time.Second)
+	}
+
 }

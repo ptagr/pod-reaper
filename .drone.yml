@@ -1,0 +1,35 @@
+workspace:
+  base: /go
+
+image-ebayn: &image-alpha
+  image: ecr.vip.ebayc3.com/newpro/cd:2.0-alpha
+
+pipeline:
+
+  test:
+    image: golang
+    commands:
+      - go test
+      - go build
+    when:
+      event: [push, pull_request, tag]
+
+  publish:
+    <<: *image-alpha
+    run: publish
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    when:
+      event: [push, pull_request, tag]
+      branch: [master]
+
+  rollout_dev:
+    <<: *image-alpha
+    run: rollout
+    env: dev
+    team: shared
+    initiative: n0
+    when:
+      event: [push, tag]
+      branch: [master]
