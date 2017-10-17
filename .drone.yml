@@ -2,7 +2,7 @@ workspace:
   base: /go
 
 image-ebayn: &image-alpha
-  image: ecr.vip.ebayc3.com/newpro/cd:2.0-alpha
+  image: ecr.vip.ebayc3.com/newpro/cd:TEST-ONLY-force-team-namespace
 
 pipeline:
 
