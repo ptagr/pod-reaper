@@ -13,7 +13,7 @@ pipeline:
       - go get k8s.io/client-go/...
       - go get -u k8s.io/apimachinery/...
       - go test
-      - go build
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
     when:
       event: [push, pull_request, tag]
 
