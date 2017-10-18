@@ -2,7 +2,7 @@ workspace:
   base: /go
 
 image-ebayn: &image-alpha
-  image: ecr.vip.ebayc3.com/newpro/cd:TEST-ONLY-force-team-namespace
+  image: ecr.vip.ebayc3.com/newpro/cd:2.0-alpha
 
 pipeline:
 
@@ -27,14 +27,24 @@ pipeline:
       - /var/run/docker.sock:/var/run/docker.sock
     when:
       event: [push, pull_request, tag]
-      branch: [master,dep]
+      branch: [master]
 
   rollout_dev:
     <<: *image-alpha
     run: rollout
     env: dev
     team: shared
-    initiative: n0
+    initiative: restricted
     when:
       event: [push, tag]
-      branch: [master, dep]
+      branch: [master]
+
+  rollout_prod:
+    <<: *image-alpha
+    run: rollout
+    env: prod
+    team: shared
+    initiative: restricted
+    when:
+      event: [push, tag]
+      branch: [master]
