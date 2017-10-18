@@ -1,0 +1,8 @@
+[submodule "vendor/github.com/kubernetes/client-go"]
+	path = vendor/github.com/kubernetes/client-go
+	url = https://github.com/kubernetes/client-go
+	branch = release-4.0
+[submodule "vendor/github.com/kubernetes/apimachinery"]
+	path = vendor/github.com/kubernetes/apimachinery
+	url = https://github.com/kubernetes/apimachinery
+	branch = release-1.7
