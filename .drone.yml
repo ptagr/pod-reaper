@@ -8,7 +8,11 @@ pipeline:
 
   test:
     image: golang
+    volumes:
+      - export GOPATH=/golang
+      - /golang:/golang
     commands:
+      - go get github.com/cloudflare/cfssl/log
       - go get k8s.io/client-go/...
       - go get -u k8s.io/apimachinery/...
       - go test
@@ -20,8 +24,11 @@ pipeline:
     <<: *image-alpha
     run: publish
     privileged: true
+    environment:
+      - GOPATH=/golang
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /golang:/golang
     when:
       event: [push, pull_request, tag]
       branch: [master,dep]
