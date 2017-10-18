@@ -23,28 +23,27 @@ func main(){
 	log.Level = log.LevelDebug
 
 	log.Debugf("Hello from pod reaper! Hide all the pods!\n")
-	var kubeconfig *string
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
 
-	flag.Parse()
 
 
 	var config *rest.Config = nil
 	var err error = nil
-	if(*kubeconfig == "" || len(*kubeconfig) == 0) {
+	if(remoteExec() != "") {
 		log.Debug("Loading kubeconfig from in cluster config")
-
 		config, err = rest.InClusterConfig()
 	} else {
+		var kubeconfig *string
+		if home := homeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+
+		flag.Parse()
 		log.Debugf("Loading kubeconfig from %s\n", *kubeconfig)
 
 		// use the current context in kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-
 	}
 
 	if err != nil {
@@ -89,6 +88,10 @@ func main(){
 		time.Sleep(sleepDuration())
 	}
 
+}
+
+func remoteExec() string {
+	return os.Getenv("REMOTE_EXEC")
 }
 
 func sleepDuration() time.Duration {

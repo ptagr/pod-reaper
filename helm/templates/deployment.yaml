@@ -15,6 +15,8 @@ spec:
       - name: {{ .Chart.Name }}
         image: {{ .Values.docker_image }}
         env:
+          - name: REMOTE_EXEC
+            value:  "true"
           - name: APP
             value: {{ .Chart.Name }}
           - name: SUMO_ACCESS_ID
