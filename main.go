@@ -6,9 +6,9 @@ import (
 	"flag"
 	"path/filepath"
 	"os"
-	metav1 "github.com/kubernetes/apimachinery/pkg/apis/meta/v1"
-	"github.com/kubernetes/client-go/tools/clientcmd"
-	"github.com/kubernetes/client-go/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/kubernetes"
 )
 
 func main(){
@@ -46,6 +46,9 @@ func main(){
 			panic(err.Error())
 		}
 		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+		for _,v := range pods.Items {
+			fmt.Printf("\n%s", v.Name)
+		}
 	}
 
 }
