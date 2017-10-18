@@ -9,6 +9,8 @@ pipeline:
   test:
     image: golang
     commands:
+      - go get k8s.io/client-go/...
+      - go get -u k8s.io/apimachinery/...
       - go test
       - go build
     when:
@@ -22,7 +24,7 @@ pipeline:
       - /var/run/docker.sock:/var/run/docker.sock
     when:
       event: [push, pull_request, tag]
-      branch: [master]
+      branch: [master,dep]
 
   rollout_dev:
     <<: *image-alpha
@@ -32,4 +34,4 @@ pipeline:
     initiative: n0
     when:
       event: [push, tag]
-      branch: [master]
+      branch: [master, dep]
