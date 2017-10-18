@@ -8,9 +8,6 @@ pipeline:
 
   test:
     image: golang
-    volumes:
-      - export GOPATH=/golang
-      - /golang:/golang
     commands:
       - go get github.com/cloudflare/cfssl/log
       - go get k8s.io/client-go/...
@@ -28,7 +25,6 @@ pipeline:
       - GOPATH=/golang
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /golang:/golang
     when:
       event: [push, pull_request, tag]
       branch: [master,dep]
