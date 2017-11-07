@@ -2,7 +2,7 @@ workspace:
   base: /go
 
 image-ebayn: &image-alpha
-  image: gcr.io/npd-shared/2.0-latest
+  image: gcr.io/npd-shared/cd:2.0-latest
 
 pipeline:
 
