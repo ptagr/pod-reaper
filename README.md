@@ -13,3 +13,7 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
 Example: `kubernetes.io/lifetime: 720h` 
 
 The above annotation will cause the pod to be reaped (killed) once it reaches the age of 30d (720h)
+
+# Todo
+* Support RBAC
+* Support Rolling Updates
