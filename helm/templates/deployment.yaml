@@ -27,6 +27,8 @@ spec:
             value: {{ .Values.sumoReceiverURL }}
           - name: COMMIT_AUTHOR
             value: {{ .Values.author }}
+          - name: REAPER_NAMESPACE
+            value: {{ .Release.Namespace }}
         resources:
           limits:
             cpu: 1000m
