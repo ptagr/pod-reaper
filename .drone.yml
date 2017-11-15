@@ -29,8 +29,108 @@ pipeline:
       event: [push, pull_request, tag]
       branch: [master]
 
-  rollout_dev:
+  n0_rollout_dev:
     <<: *image-alpha
+    group: rollout_dev
+    run: rollout
+    env: dev
+    team: shared
+    initiative: n0
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n0_rollout_test:
+    <<: *image-alpha
+    group: rollout_test
+    run: rollout
+    env: test
+    team: shared
+    initiative: n0
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n0_rollout_prod:
+    <<: *image-alpha
+    group: rollout_prod
+    run: rollout
+    env: prod
+    team: shared
+    initiative: n0
+    when:
+      event: [deployment]
+      environment: prod
+
+  n1_rollout_dev:
+    <<: *image-alpha
+    group: rollout_dev
+    run: rollout
+    env: dev
+    team: shared
+    initiative: n1
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n1_rollout_test:
+    <<: *image-alpha
+    group: rollout_test
+    run: rollout
+    env: test
+    team: shared
+    initiative: n1
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n1_rollout_prod:
+    <<: *image-alpha
+    group: rollout_prod
+    run: rollout
+    env: prod
+    team: shared
+    initiative: n1
+    when:
+      event: [deployment]
+      environment: prod
+
+  n2_rollout_dev:
+    <<: *image-alpha
+    group: rollout_dev
+    run: rollout
+    env: dev
+    team: shared
+    initiative: n2
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n2_rollout_test:
+    <<: *image-alpha
+    group: rollout_test
+    run: rollout
+    env: test
+    team: shared
+    initiative: n2
+    when:
+      event: [push, tag]
+      branch: [master]
+
+  n2_rollout_prod:
+    <<: *image-alpha
+    group: rollout_prod
+    run: rollout
+    env: prod
+    team: shared
+    initiative: n2
+    when:
+      event: [deployment]
+      environment: prod
+
+  restricted_rollout_dev:
+    <<: *image-alpha
+    group: rollout_dev
     run: rollout
     env: dev
     team: shared
@@ -39,8 +139,9 @@ pipeline:
       event: [push, tag]
       branch: [master]
 
-  rollout_test:
+  restricted_rollout_test:
     <<: *image-alpha
+    group: rollout_test
     run: rollout
     env: test
     team: shared
@@ -49,8 +150,9 @@ pipeline:
       event: [push, tag]
       branch: [master]
 
-  rollout_prod:
+  restricted_rollout_prod:
     <<: *image-alpha
+    group: rollout_prod
     run: rollout
     env: prod
     team: shared
