@@ -20,9 +20,9 @@ const (
 
 func main(){
 
-	log.Level = log.LevelDebug
+	log.Level = log.LevelInfo
 
-	log.Debugf("Hello from pod reaper! Hide all the pods!\n")
+	log.Infof("Hello from pod reaper! Hide all the pods!\n")
 
 
 
@@ -40,7 +40,7 @@ func main(){
 		}
 
 		flag.Parse()
-		log.Debugf("Loading kubeconfig from %s\n", *kubeconfig)
+		log.Infof("Loading kubeconfig from %s\n", *kubeconfig)
 
 		// use the current context in kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
@@ -62,7 +62,8 @@ func main(){
 			panic(err.Error())
 		}
 
-		log.Debugf("Checking %d pods in namespace %s\n", len(pods.Items), namespace())
+		log.Infof("Checking %d pods in namespace %s\n", len(pods.Items), namespace())
+		killedPods := 0
 		for _,v := range pods.Items {
 			if val, ok := v.Annotations[LifetimeAnnotation]; ok {
 				log.Debugf("pod %s : Found annotation %s with value %s\n", v.Name, LifetimeAnnotation, val)
@@ -73,18 +74,19 @@ func main(){
 					log.Debugf("pod %s : %s\n", v.Name, v.CreationTimestamp)
 					currentLifetime := time.Now().Sub(v.CreationTimestamp.Time)
 					if currentLifetime > lifetime {
-						log.Debugf("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
+						log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
 						err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
 						if err != nil {
 							panic(err.Error())
 						}
-						log.Debugf("pod %s : pod killed.\n", v.Name)
+						log.Infof("pod %s : pod killed.\n", v.Name)
+						killedPods++
 					}
 				}
 			}
 		}
 
-		log.Debugf("Killed Old Pods. Now sleeping for %d seconds", int(sleepDuration().Seconds()))
+		log.Infof("Killed %d Old Pods. Now sleeping for %d seconds", killedPods, int(sleepDuration().Seconds()))
 		time.Sleep(sleepDuration())
 	}
 
