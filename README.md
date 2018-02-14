@@ -4,7 +4,7 @@ A kubernetes operator that reaps pods that have reached their lifetime
 # Configuration
 To give a lifetime to your pods, 
 * Deploy the pod reaper in your cluster
-* Add the following annotation:  
+* Add the following annotation to the pods you want to reap:  
   `pod.kubernetes.io/lifetime: $DURATION`
 
   `DURATION` has to be a [valid golang duration string](https://golang.org/pkg/time/#ParseDuration).
