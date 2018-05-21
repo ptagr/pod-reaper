@@ -27,8 +27,14 @@ spec:
             value: {{ .Values.sumoReceiverURL }}
           - name: COMMIT_AUTHOR
             value: {{ .Values.author }}
-          - name: REAPER_NAMESPACE
+          - name: REAPER_NAMESPACES
             value: {{ .Release.Namespace }}
+          - name: MAX_REAP_COUNT_PER_RUN
+            value: {{ .Values.maxReapCountPerRun | default 30 | quote}}
+          - name: REAP_EVICTED_PODS
+            value: {{ .Values.reapEvictedPods | default false | quote}}
+          - name: CRON_JOB
+            value: {{ .Values.cronJob | default false | quote}} 
         resources:
           limits:
             cpu: 1000m

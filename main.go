@@ -1,34 +1,44 @@
 package main
 
 import (
-	"time"
 	"flag"
-	"path/filepath"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cloudflare/cfssl/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"github.com/cloudflare/cfssl/log"
-	"strconv"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
-	LifetimeAnnotation string = "pod.kubernetes.io/lifetime"
+	lifetimeAnnotation string = "pod.kubernetes.io/lifetime"
 )
 
-func main(){
+func main() {
 
-	log.Level = log.LevelInfo
+	log.Level = log.LevelDebug
 
 	log.Infof("Hello from pod reaper! Hide all the pods!\n")
 
+	var config *rest.Config
+	var err error
+	var maxReaperCount = maxReaperCountPerRun()
+	var (
+		reapEvicted  = reapEvictedPods()
+		runAsCronJob = cronJob()
+	)
 
+	if !reapEvicted {
+		log.Debugf("REAP_EVICTED_PODS not set. Not reaping evicted pods.")
+	}
 
-	var config *rest.Config = nil
-	var err error = nil
-	if(remoteExec() != "") {
+	if remoteExec() {
 		log.Debug("Loading kubeconfig from in cluster config")
 		config, err = rest.InClusterConfig()
 	} else {
@@ -57,58 +67,117 @@ func main(){
 	}
 
 	for {
-		pods, err := clientset.CoreV1().Pods(namespace()).List(metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
+		reaperNamespaces := namespaces()
+		if len(reaperNamespaces) == 0 {
+			panic("No namespace specified. Exiting.")
 		}
+		for _, ns := range reaperNamespaces {
+			pods, err := clientset.CoreV1().Pods(ns).List(metav1.ListOptions{})
+			if err != nil {
+				panic(err.Error())
+			}
 
-		log.Infof("Checking %d pods in namespace %s\n", len(pods.Items), namespace())
-		killedPods := 0
-		for _,v := range pods.Items {
-			if val, ok := v.Annotations[LifetimeAnnotation]; ok {
-				log.Debugf("pod %s : Found annotation %s with value %s\n", v.Name, LifetimeAnnotation, val)
-				lifetime, _ := time.ParseDuration(val)
-				if lifetime == 0 {
-					log.Debugf("pod %s : provided value %s is incorrect\n", v.Name, val)
-				} else {
-					log.Debugf("pod %s : %s\n", v.Name, v.CreationTimestamp)
-					currentLifetime := time.Now().Sub(v.CreationTimestamp.Time)
-					if currentLifetime > lifetime {
-						log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
-						err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
-						if err != nil {
-							panic(err.Error())
+			log.Infof("Checking %d pods in namespace %s\n", len(pods.Items), ns)
+			killedPods := 0
+			for _, v := range pods.Items {
+				if val, ok := v.Annotations[lifetimeAnnotation]; ok {
+					log.Debugf("pod %s : Found annotation %s with value %s\n", v.Name, lifetimeAnnotation, val)
+					lifetime, _ := time.ParseDuration(val)
+					if lifetime == 0 {
+						log.Debugf("pod %s : provided value %s is incorrect\n", v.Name, val)
+					} else if killedPods < maxReaperCount {
+						log.Debugf("pod %s : %s\n", v.Name, v.CreationTimestamp)
+						currentLifetime := time.Now().Sub(v.CreationTimestamp.Time)
+						if currentLifetime > lifetime {
+							log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
+							err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
+							if err != nil {
+								panic(err.Error())
+							}
+							log.Infof("pod %s : pod killed.\n", v.Name)
+							killedPods++
 						}
-						log.Infof("pod %s : pod killed.\n", v.Name)
-						killedPods++
+					} else {
+						log.Debugf("pod %s : max %d pods killed\n", v.Name, maxReaperCount)
 					}
 				}
-			}
-		}
 
-		log.Infof("Killed %d Old Pods. Now sleeping for %d seconds", killedPods, int(sleepDuration().Seconds()))
-		time.Sleep(sleepDuration())
+				if reapEvicted && strings.Contains(v.Status.Reason, "Evicted") {
+					log.Debugf("pod %s : pod is evicted and needs to be deleted", v.Name)
+					killedPods++
+				}
+
+			}
+
+			log.Infof("Killed %d Old/Evicted Pods.", killedPods)
+		}
+		if !runAsCronJob {
+			log.Infof("Now sleeping for %d seconds", int(sleepDuration().Seconds()))
+			time.Sleep(sleepDuration())
+		} else {
+			break
+		}
 	}
 
 }
 
-func remoteExec() string {
-	return os.Getenv("REMOTE_EXEC")
+func remoteExec() bool {
+	if val, ok := os.LookupEnv("REMOTE_EXEC"); ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err == nil {
+			return boolVal
+		} else {
+			panic("REMOTE_EXEC var incorrectly set")
+		}
+	}
+	panic("REMOTE_EXEC var not set")
+}
+
+func maxReaperCountPerRun() int {
+	i, err := strconv.Atoi(os.Getenv("MAX_REAPER_COUNT_PER_RUN"))
+	if err != nil {
+		i = 30
+	}
+	return i
+}
+
+func reapEvictedPods() bool {
+	if val, ok := os.LookupEnv("REAP_EVICTED_PODS"); ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err == nil {
+			return boolVal
+		}
+	}
+	return false
+}
+
+func cronJob() bool {
+	if val, ok := os.LookupEnv("CRON_JOB"); ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err == nil {
+			return boolVal
+		}
+	}
+	return false
 }
 
 func sleepDuration() time.Duration {
 	if h := os.Getenv("REAPER_INTERVAL_IN_SEC"); h != "" {
-		s,_ := strconv.Atoi(h)
+		s, _ := strconv.Atoi(h)
 		return time.Duration(s) * time.Second
 	}
 	return 60 * time.Second
 }
 
-func namespace() string {
-	if h := os.Getenv("REAPER_NAMESPACE"); h != "" {
-		return h
+func namespaces() []string {
+	if h := os.Getenv("REAPER_NAMESPACES"); h != "" {
+		namespaces := strings.Split(h, ",")
+		if len(namespaces) == 1 && strings.ToLower(namespaces[0]) == "all" {
+			return []string{metav1.NamespaceAll}
+		}
+		return namespaces
 	}
-	return metav1.NamespaceAll
+	return []string{}
 }
 
 func homeDir() string {
