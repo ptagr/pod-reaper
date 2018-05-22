@@ -7,13 +7,11 @@ image-latest: &image-latest
 pipeline:
 
   test:
-    image: golang
+    image: instrumentisto/glide:0.13.1-go1.9
     commands:
-      - go get github.com/cloudflare/cfssl/log
-      - go get k8s.io/client-go/...
-      - go get -u k8s.io/apimachinery/...
+      - glide update
       - go test
-      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o pod-reaper
     when:
       event: [push, pull_request, tag]
 
