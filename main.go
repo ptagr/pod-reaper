@@ -104,6 +104,11 @@ func main() {
 
 				if reapEvicted && strings.Contains(v.Status.Reason, "Evicted") {
 					log.Debugf("pod %s : pod is evicted and needs to be deleted", v.Name)
+					err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
+					if err != nil {
+						panic(err.Error())
+					}
+					log.Infof("pod %s : pod killed.\n", v.Name)
 					killedPods++
 				}
 
