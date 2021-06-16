@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -72,7 +73,7 @@ func main() {
 			panic("No namespace specified. Exiting.")
 		}
 		for _, ns := range reaperNamespaces {
-			pods, err := clientset.CoreV1().Pods(ns).List(metav1.ListOptions{})
+			pods, err := clientset.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
 				panic(err.Error())
 			}
@@ -90,7 +91,7 @@ func main() {
 						currentLifetime := time.Now().Sub(v.CreationTimestamp.Time)
 						if currentLifetime > lifetime {
 							log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
-							err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
+							err := clientset.CoreV1().Pods(v.Namespace).Delete(context.TODO(), v.Name, metav1.DeleteOptions{})
 							if err != nil {
 								panic(err.Error())
 							}
@@ -104,7 +105,7 @@ func main() {
 
 				if reapEvicted && strings.Contains(v.Status.Reason, "Evicted") {
 					log.Debugf("pod %s : pod is evicted and needs to be deleted", v.Name)
-					err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
+					err := clientset.CoreV1().Pods(v.Namespace).Delete(context.TODO(), v.Name, metav1.DeleteOptions{})
 					if err != nil {
 						panic(err.Error())
 					}
