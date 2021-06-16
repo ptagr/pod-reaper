@@ -1,12 +1,15 @@
-FROM golang:1.13.4-alpine
-
-RUN apk --no-cache add curl git && curl https://glide.sh/get | sh && apk del curl
+FROM golang:latest AS builder
 
 WORKDIR /go/src/app
-COPY ["glide.yaml", "main.go", "/go/src/app/"]
+COPY ["go.mod", "go.sum", "./"]
 
-RUN glide install
+RUN go mod download
 
-RUN go build -o /pod-reaper
+COPY . .
 
-CMD  /pod-reaper
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o pod-reaper
+
+FROM alpine:latest
+
+COPY --from=builder /go/src/app/pod-reaper /pod-reaper
+CMD /pod-reaper
