@@ -32,8 +32,8 @@ The following environment variables can be set:
 | CRON_JOB               | Whether this should be run just once or in a loop. Set to true if running this as a cron job | true                  | false         | no       |
 | MAX_REAP_COUNT_PER_RUN | Maximum Pods to reap in each run                                                             | 100                   | 30            | no       |
 | REAP_EVICTED_PODS      | Whether or not to delete evicted pods                                                        | true                  | false         | no       |
+| EVICT                  | Use Eviction instead of Deletion when removing pods (honors Pod Disruption Budgets)          | true                  | false         | no       |
 
 ## Todo
 
 * Support RBAC
-* Support Rolling Updates
