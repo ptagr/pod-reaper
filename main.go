@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -30,6 +32,7 @@ func main() {
 	var err error
 	var maxReaperCount = maxReaperCountPerRun()
 	var (
+		evict        = evict()
 		reapEvicted  = reapEvictedPods()
 		runAsCronJob = cronJob()
 	)
@@ -72,7 +75,7 @@ func main() {
 			panic("No namespace specified. Exiting.")
 		}
 		for _, ns := range reaperNamespaces {
-			pods, err := clientset.CoreV1().Pods(ns).List(metav1.ListOptions{})
+			pods, err := clientset.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
 				panic(err.Error())
 			}
@@ -89,13 +92,23 @@ func main() {
 						log.Debugf("pod %s : %s\n", v.Name, v.CreationTimestamp)
 						currentLifetime := time.Now().Sub(v.CreationTimestamp.Time)
 						if currentLifetime > lifetime {
-							log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
-							err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
-							if err != nil {
-								panic(err.Error())
+							var err error
+							if evict {
+								log.Infof("pod %s : pod is past its lifetime and will be evicted\n", v.Name)
+								err = clientset.CoreV1().Pods(v.Namespace).Evict(context.TODO(), &policyv1.Eviction{
+									ObjectMeta:    metav1.ObjectMeta{Namespace: v.Namespace, Name: v.Name},
+									DeleteOptions: &metav1.DeleteOptions{},
+								})
+							} else {
+								log.Infof("pod %s : pod is past its lifetime and will be killed.\n", v.Name)
+								err = clientset.CoreV1().Pods(v.Namespace).Delete(context.TODO(), v.Name, metav1.DeleteOptions{})
 							}
-							log.Infof("pod %s : pod killed.\n", v.Name)
-							killedPods++
+							if err != nil {
+								log.Infof("unable to reap pod %s : %s", v.Name, err.Error())
+							} else {
+								log.Infof("pod %s : pod reaped.\n", v.Name)
+								killedPods++
+							}
 						}
 					} else {
 						log.Debugf("pod %s : max %d pods killed\n", v.Name, maxReaperCount)
@@ -104,7 +117,7 @@ func main() {
 
 				if reapEvicted && strings.Contains(v.Status.Reason, "Evicted") {
 					log.Debugf("pod %s : pod is evicted and needs to be deleted", v.Name)
-					err := clientset.CoreV1().Pods(v.Namespace).Delete(v.Name, &metav1.DeleteOptions{})
+					err := clientset.CoreV1().Pods(v.Namespace).Delete(context.TODO(), v.Name, metav1.DeleteOptions{})
 					if err != nil {
 						panic(err.Error())
 					}
@@ -190,4 +203,14 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func evict() bool {
+	if val, ok := os.LookupEnv("EVICT"); ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err == nil {
+			return boolVal
+		}
+	}
+	return false
 }
